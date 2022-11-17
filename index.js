@@ -15,13 +15,21 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 //Database connection
 const dbConnect = () => {
-    const appointmentsData = client.db('docPlus').collection('appointments');
-
+    const treatmentOptions = client.db('docPlus').collection('appointmentOptions')
+    const appointmentBooking = client.db('docPlus').collection('appointments');
     //Post appointments data to the mongodb
     app.post ('/appointments', async(req, res)=> {
         const newAppoint = req.body;
-        const result = await appointmentsData.insertOne(newAppoint)
+        const result = await appointmentBooking.insertOne(newAppoint)
         res.send(result)
+    })
+
+    //Get treatement options from the database
+    app.get('/treatmentoptions', async(req, res)=> {
+        const query = {}
+        const cursor = treatmentOptions.find(query)
+        const treatment = await cursor.toArray()
+        res.send(treatment)
     })
 }
 
