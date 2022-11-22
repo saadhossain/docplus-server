@@ -15,21 +15,41 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 //Database connection
 const dbConnect = () => {
-    const treatmentOptions = client.db('docPlus').collection('appointmentOptions')
+    const treatmentsData = client.db('docPlus').collection('treatments')
     const appointmentBooking = client.db('docPlus').collection('appointments');
     //Post appointments data to the mongodb
     app.post ('/appointments', async(req, res)=> {
         const newAppoint = req.body;
+        const query = {
+            apptDate : newAppoint.apptDate,
+            treatmentName: newAppoint.treatmentName,
+            email:newAppoint.email
+        }
+        const alreadyAppointed = await appointmentBooking.find(query).toArray()
+        if(alreadyAppointed.length){
+            const message = `You Already Have an appointment on ${newAppoint.apptDate} for ${newAppoint.treatmentName}`
+            return res.send({ackownledged: false ,message})
+        }
         const result = await appointmentBooking.insertOne(newAppoint)
         res.send(result)
     })
 
     //Get treatement options from the database
     app.get('/treatmentoptions', async(req, res)=> {
+        const date = req.query.date;
+        console.log(date);
         const query = {}
-        const cursor = treatmentOptions.find(query)
-        const treatment = await cursor.toArray()
-        res.send(treatment)
+        const treatments = await treatmentsData.find(query).toArray()
+        //Booking query and get the remaining schedule after creating new appointment
+        const bookingQuery = {apptDate: date}
+        const alreadyBooked = await appointmentBooking.find(bookingQuery).toArray()
+        treatments.forEach(treatment=> {
+            const treatmentBooked = alreadyBooked.filter(booked => booked.treatmentName === treatment.treatmentName)
+            const bookedScheduled = treatmentBooked.map(booked => booked.schedule)
+            const remainingSchedule = treatment.slots.filter(slot => !bookedScheduled.includes(slot))
+            treatment.slots = remainingSchedule;
+        })
+        res.send(treatments)
     })
 }
 
