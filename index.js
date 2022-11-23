@@ -5,7 +5,7 @@ require('dotenv').config()
 const port = process.env.PORT || 5000
 //Middle Ware
 const cors = require('cors')
-const { MongoClient, ServerApiVersion  } = require('mongodb')
+const { MongoClient, ServerApiVersion, ObjectId  } = require('mongodb')
 app.use(cors())
 app.use(express.json())
 
@@ -88,6 +88,14 @@ const dbConnect = () => {
         }
         const appointments = await appointmentBooking.find(query).toArray()
         res.send(appointments)
+    })
+    //cancel appointment
+    app.delete('/appointments/:id', async(req, res)=> {
+        const id = req.params.id;
+        const query = {_id: ObjectId(id)}
+        const result = await appointmentBooking.deleteOne(query)
+        res.send(result)
+
     })
 
     //Save users to the database
